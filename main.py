@@ -1,0 +1,73 @@
+import cv2
+from ultralytics import YOLO
+
+# Load YOLOv8 model
+model = YOLO("yolov8n.pt")
+
+
+def detect_objects(frame):
+    results = model(frame)
+    detected_objects = []
+
+    for r in results:
+        for box in r.boxes:
+            class_id = int(box.cls[0])  # Get class ID
+            confidence = box.conf[0].item()  # Confidence score
+
+            if confidence > 0.5:
+                label = model.names[class_id]
+                detected_objects.append(label)
+
+                # Draw bounding box
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+
+    return frame, detected_objects
+
+
+def main():
+    cap = cv2.VideoCapture(0)  # Open webcam
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        frame, detected_objects = detect_objects(frame)
+        cv2.imshow("AI Vision", frame)
+        if detected_objects:
+            print("Detected objects:", detected_objects)
+        key = cv2.waitKey(1) & 0xFF
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    main()
+    # 1. Initialize the webcam (0 is usually the default camera)
+cap = cv2.VideoCapture(0)
+
+while cap.isOpened():
+    success, frame = cap.read()
+    
+    if success:
+        # 2. Run the detection function you already wrote
+        results = model(frame)
+        
+        # 3. Use YOLO's built-in plotter to see boxes on the screen
+        annotated_frame = results[0].plot()
+
+        # 4. Display the resulting frame
+        cv2.imshow("YOLOv8 Real-Time Detection", annotated_frame)
+
+        # 5. Break the loop if 'q' is pressed
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+    else:
+        break
+
+# Release the camera and close windows
+cap.release()
+cv2.destroyAllWindows()
